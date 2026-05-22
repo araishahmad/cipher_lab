@@ -23,6 +23,39 @@ def caesar_encrypt(text, shift):
 def caesar_decrypt(text, shift):
     return caesar_encrypt(text, -shift)
 
+# vigenere cipher functions
+def vigenere_encrypt(text, key):
+    result = ""
+    key = key.upper()
+    key_index = 0
+
+    for char in text:
+        if char.isalpha():
+            base = ord('A') if char.isupper() else ord('a')
+            shift = ord(key[key_index % len(key)]) - ord('A')
+            result += chr((ord(char) - base + shift) % 26 + base)
+            key_index += 1
+        else:
+            result += char
+
+    return result
+
+def vigenere_decrypt(text, key):
+    result = ""
+    key = key.upper()
+    key_index = 0
+
+    for char in text:
+        if char.isalpha():
+            base = ord('A') if char.isupper() else ord('a')
+            shift = ord(key[key_index % len(key)]) - ord('A')
+            result += chr((ord(char) - base - shift) % 26 + base)
+            key_index += 1
+        else:
+            result += char
+
+    return result
+
 # aes cipher functions
 def aes_encrypt(plaintext, key):
     key_bytes = key.encode('utf-8')
@@ -62,6 +95,31 @@ def route_caesar_decrypt():
     text  = data.get('text', '')
     shift = int(data.get('shift', 3))
     result = caesar_decrypt(text, shift)
+    return jsonify({'result': result})
+
+# vigenere routes
+@app.route('/vigenere/encrypt', methods=['POST'])
+def route_vigenere_encrypt():
+    data = request.json
+    text = data.get('text', '')
+    key  = data.get('key', '')
+    if not key:
+        return jsonify({'error': 'Key is required.'}), 400
+    if not key.isalpha():
+        return jsonify({'error': 'Key must contain only letters.'}), 400
+    result = vigenere_encrypt(text, key)
+    return jsonify({'result': result})
+
+@app.route('/vigenere/decrypt', methods=['POST'])
+def route_vigenere_decrypt():
+    data = request.json
+    text = data.get('text', '')
+    key  = data.get('key', '')
+    if not key:
+        return jsonify({'error': 'Key is required.'}), 400
+    if not key.isalpha():
+        return jsonify({'error': 'Key must contain only letters.'}), 400
+    result = vigenere_decrypt(text, key)
     return jsonify({'result': result})
 
 # aes routes

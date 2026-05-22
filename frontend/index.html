@@ -1,32 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Cipher Comparison Tool</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
 
   <header>
     <h1>Cipher Comparison Tool</h1>
-    <p>Caesar Cipher (Weak) vs AES (Strong) &mdash; Encrypt, Decrypt &amp; Attack Simulation</p>
+    <p>Classical vs Modern Encryption &mdash; Encrypt, Decrypt &amp; Attack Simulation</p>
   </header>
 
   <main>
 
     <div class="tabs">
       <button class="tab-btn active" onclick="showTab('caesar')">Caesar Cipher</button>
-      <button class="tab-btn" onclick="showTab('aes')">AES Cipher</button>
+      <button class="tab-btn"        onclick="showTab('vigenere')">Vigenère Cipher</button>
+      <button class="tab-btn"        onclick="showTab('aes')">AES Cipher</button>
       <button class="tab-btn attack-tab" onclick="showTab('attack')">Attack Simulation</button>
     </div>
 
     <!-- caesar tab -->
     <div id="tab-caesar" class="tab-content active">
       <div class="card">
-        <h2>Caesar Cipher</h2>
+        <h2>Caesar Cipher &nbsp;<span class="badge weak">WEAK</span></h2>
         <p class="description">
           A classical substitution cipher that shifts each letter by a fixed number.
           Only 26 possible keys — trivially broken by brute-force.
@@ -47,10 +46,35 @@
       </div>
     </div>
 
+    <!-- vigenere tab -->
+    <div id="tab-vigenere" class="tab-content">
+      <div class="card">
+        <h2>Vigenère Cipher &nbsp;<span class="badge medium">MEDIUM</span></h2>
+        <p class="description">
+          An improvement over Caesar that uses a keyword instead of a single shift.
+          Each letter of the key applies a different shift, making simple brute-force harder —
+          but still vulnerable to frequency analysis.
+        </p>
+
+        <label>Plain / Cipher Text</label>
+        <textarea id="vigenere-text" rows="3" placeholder="Enter text here..."></textarea>
+
+        <label>Keyword (letters only, e.g. SECRET)</label>
+        <input id="vigenere-key" type="text" placeholder="Enter keyword..." />
+
+        <div class="btn-row">
+          <button onclick="vigenereAction('encrypt')">Encrypt</button>
+          <button onclick="vigenereAction('decrypt')">Decrypt</button>
+        </div>
+
+        <div id="vigenere-output" class="output hidden"></div>
+      </div>
+    </div>
+
     <!-- aes tab -->
     <div id="tab-aes" class="tab-content">
       <div class="card">
-        <h2>AES Cipher &nbsp;<span class="badge strong">AES-128 CBC</span></h2>
+        <h2>AES Cipher &nbsp;<span class="badge strong">STRONG</span></h2>
         <p class="description">
           Advanced Encryption Standard — symmetric block cipher with 128-bit keys.
           Industry standard used in banking, TLS, and disk encryption.
@@ -76,7 +100,7 @@
       <div class="card">
         <h2>Attack Simulation</h2>
         <p class="description">
-          Enter a plaintext. The server will encrypt it with both ciphers and
+          Enter a plaintext. The server will encrypt it with both Caesar and AES and
           then simulate a brute-force attack on each — showing why AES is
           astronomically stronger than Caesar.
         </p>
@@ -114,5 +138,4 @@
 
   <script src="script.js"></script>
 </body>
-
 </html>
