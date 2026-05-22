@@ -16,7 +16,7 @@ function showTab(name) {
 
 // caesar encrypt / decrypt
 async function caesarAction(action) {
-  const text  = document.getElementById('caesar-text').value.trim();
+  const text = document.getElementById('caesar-text').value.trim();
   const shift = parseInt(document.getElementById('caesar-shift').value);
   const outputDiv = document.getElementById('caesar-output');
 
@@ -53,11 +53,11 @@ async function caesarAction(action) {
 // aes encrypt / decrypt
 async function aesAction(action) {
   const text = document.getElementById('aes-text').value.trim();
-  const key  = document.getElementById('aes-key').value.trim();
+  const key = document.getElementById('aes-key').value.trim();
   const outputDiv = document.getElementById('aes-output');
 
   if (!text) { alert("Please enter some text."); return; }
-  if (!key)  { alert("Please enter a key."); return; }
+  if (!key) { alert("Please enter a key."); return; }
 
   try {
     const res = await fetch(`${BASE_URL}/aes/${action}`, {

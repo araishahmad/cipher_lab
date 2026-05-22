@@ -91,7 +91,7 @@ main {
   background: #fff;
   border-radius: 8px;
   padding: 28px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .card h2 {
@@ -209,8 +209,15 @@ button:hover {
   letter-spacing: 0.5px;
 }
 
-.badge.weak   { background: #fde8ec; color: #b00020; }
-.badge.strong { background: #e6f4ea; color: #1a7431; }
+.badge.weak {
+  background: #fde8ec;
+  color: #b00020;
+}
+
+.badge.strong {
+  background: #e6f4ea;
+  color: #1a7431;
+}
 
 /* attack result cards */
 .attack-card {
@@ -219,8 +226,15 @@ button:hover {
   padding: 18px 20px;
 }
 
-.attack-card.weak   { background: #fff5f7; border: 1px solid #f5b8c4; }
-.attack-card.strong { background: #f4faf5; border: 1px solid #a8d5b5; }
+.attack-card.weak {
+  background: #fff5f7;
+  border: 1px solid #f5b8c4;
+}
+
+.attack-card.strong {
+  background: #f4faf5;
+  border: 1px solid #a8d5b5;
+}
 
 .attack-card h3 {
   font-size: 16px;
@@ -238,7 +252,7 @@ button:hover {
 
 .attack-card table td {
   padding: 6px 0;
-  border-bottom: 1px solid rgba(0,0,0,0.06);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   vertical-align: top;
 }
 
@@ -266,10 +280,17 @@ button:hover {
   font-style: italic;
 }
 
-.hidden { display: none; }
+.hidden {
+  display: none;
+}
 
 /* mobile */
 @media (max-width: 480px) {
-  .tabs { flex-direction: column; }
-  .btn-row { flex-direction: column; }
+  .tabs {
+    flex-direction: column;
+  }
+
+  .btn-row {
+    flex-direction: column;
+  }
 }
