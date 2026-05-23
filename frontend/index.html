@@ -16,9 +16,10 @@
   <main>
 
     <div class="tabs">
-      <button class="tab-btn active" onclick="showTab('caesar')">Caesar Cipher</button>
-      <button class="tab-btn"        onclick="showTab('vigenere')">Vigenère Cipher</button>
-      <button class="tab-btn"        onclick="showTab('aes')">AES Cipher</button>
+      <button class="tab-btn active"   onclick="showTab('caesar')">Caesar</button>
+      <button class="tab-btn"          onclick="showTab('vigenere')">Vigenère</button>
+      <button class="tab-btn"          onclick="showTab('aes')">AES</button>
+      <button class="tab-btn"          onclick="showTab('rsa')">RSA</button>
       <button class="tab-btn attack-tab" onclick="showTab('attack')">Attack Simulation</button>
     </div>
 
@@ -52,7 +53,7 @@
         <h2>Vigenère Cipher &nbsp;<span class="badge medium">MEDIUM</span></h2>
         <p class="description">
           An improvement over Caesar that uses a keyword instead of a single shift.
-          Each letter of the key applies a different shift, making simple brute-force harder —
+          Each letter of the key applies a different shift — harder to brute-force,
           but still vulnerable to frequency analysis.
         </p>
 
@@ -76,15 +77,34 @@
       <div class="card">
         <h2>AES Cipher &nbsp;<span class="badge strong">STRONG</span></h2>
         <p class="description">
-          Advanced Encryption Standard — symmetric block cipher with 128-bit keys.
-          Industry standard used in banking, TLS, and disk encryption.
+          Advanced Encryption Standard with proper PBKDF2 key derivation.
+          Your password is never used directly — it goes through 200,000 rounds
+          of hashing to produce a strong 256-bit key. Choose between CBC and GCM mode below.
         </p>
 
         <label>Plain / Cipher Text</label>
         <textarea id="aes-text" rows="3" placeholder="Enter text here..."></textarea>
 
-        <label>Secret Key (any text, padded to 16 bytes internally)</label>
-        <input id="aes-key" type="text" value="mySecretKey123!!" placeholder="Enter key..." />
+        <label>Password</label>
+        <input id="aes-key" type="text" placeholder="Enter password..." />
+
+        <label>Mode</label>
+        <div class="mode-selector">
+          <label class="mode-option">
+            <input type="radio" name="aes-mode" value="CBC" checked />
+            <span>
+              <b>CBC</b> — Cipher Block Chaining. Encrypts data in chained blocks.
+              Fast and widely supported.
+            </span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="aes-mode" value="GCM" />
+            <span>
+              <b>GCM</b> — Galois/Counter Mode. Encrypts and authenticates.
+              Detects if the ciphertext was tampered with.
+            </span>
+          </label>
+        </div>
 
         <div class="btn-row">
           <button onclick="aesAction('encrypt')">Encrypt</button>
@@ -95,14 +115,63 @@
       </div>
     </div>
 
+    <!-- rsa tab -->
+    <div id="tab-rsa" class="tab-content">
+      <div class="card">
+        <h2>RSA Cipher &nbsp;<span class="badge strong">ASYMMETRIC</span></h2>
+        <p class="description">
+          RSA uses two different keys — a public key to encrypt and a private key to decrypt.
+          Anyone can encrypt with the public key, but only the private key holder can read the message.
+          This is fundamentally different from AES where both sides share the same key.
+        </p>
+
+        <div class="info-box">
+          <b>Step 1</b> — Generate a key pair. Share the public key with anyone who needs to send you a message. Keep the private key secret.
+        </div>
+
+        <div class="btn-row" style="margin-top: 14px;">
+          <button onclick="rsaGenerate()">Generate Key Pair</button>
+        </div>
+
+        <div id="rsa-keys" class="hidden">
+          <label>Public Key (share this)</label>
+          <textarea id="rsa-public-key" rows="6" readonly></textarea>
+
+          <label>Private Key (keep this secret)</label>
+          <textarea id="rsa-private-key" rows="6" readonly></textarea>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="info-box">
+          <b>Step 2</b> — Encrypt with the public key, decrypt with the private key.
+        </div>
+
+        <label style="margin-top: 14px;">Plain / Cipher Text</label>
+        <textarea id="rsa-text" rows="3" placeholder="Enter text here..."></textarea>
+
+        <label>Public Key (for encryption)</label>
+        <textarea id="rsa-pub-input" rows="5" placeholder="Paste public key here..."></textarea>
+
+        <label>Private Key (for decryption)</label>
+        <textarea id="rsa-priv-input" rows="5" placeholder="Paste private key here..."></textarea>
+
+        <div class="btn-row">
+          <button onclick="rsaAction('encrypt')">Encrypt</button>
+          <button onclick="rsaAction('decrypt')">Decrypt</button>
+        </div>
+
+        <div id="rsa-output" class="output hidden"></div>
+      </div>
+    </div>
+
     <!-- attack tab -->
     <div id="tab-attack" class="tab-content">
       <div class="card">
         <h2>Attack Simulation</h2>
         <p class="description">
-          Enter a plaintext. The server will encrypt it with both Caesar and AES and
-          then simulate a brute-force attack on each — showing why AES is
-          astronomically stronger than Caesar.
+          Enter a plaintext. The server encrypts it with Caesar and AES then
+          simulates a brute-force attack on each — showing the difference in security.
         </p>
 
         <label>Plaintext to Attack</label>
@@ -120,7 +189,7 @@
           </div>
 
           <div class="attack-card strong">
-            <h3>AES Cipher &nbsp;<span class="badge strong">STRONG</span></h3>
+            <h3>AES-256 + PBKDF2 &nbsp;<span class="badge strong">STRONG</span></h3>
             <div id="aes-attack-result"></div>
           </div>
 
