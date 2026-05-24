@@ -1,25 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cipher Comparison Tool</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
 
   <header>
     <h1>Cipher Comparison Tool</h1>
-    <p>Classical vs Modern Encryption &mdash; Encrypt, Decrypt &amp; Attack Simulation</p>
+    <p>Classical vs Modern Encryption &mdash; Encrypt, Decrypt, Hash &amp; Attack Simulation</p>
   </header>
 
   <main>
 
     <div class="tabs">
-      <button class="tab-btn active"   onclick="showTab('caesar')">Caesar</button>
-      <button class="tab-btn"          onclick="showTab('vigenere')">Vigenère</button>
-      <button class="tab-btn"          onclick="showTab('aes')">AES</button>
-      <button class="tab-btn"          onclick="showTab('rsa')">RSA</button>
+      <button class="tab-btn active" onclick="showTab('caesar')">Caesar</button>
+      <button class="tab-btn" onclick="showTab('vigenere')">Vigenère</button>
+      <button class="tab-btn" onclick="showTab('aes')">AES</button>
+      <button class="tab-btn" onclick="showTab('rsa')">RSA</button>
+      <button class="tab-btn" onclick="showTab('hash')">Hash</button>
       <button class="tab-btn attack-tab" onclick="showTab('attack')">Attack Simulation</button>
     </div>
 
@@ -29,7 +32,7 @@
         <h2>Caesar Cipher &nbsp;<span class="badge weak">WEAK</span></h2>
         <p class="description">
           A classical substitution cipher that shifts each letter by a fixed number.
-          Only 26 possible keys — trivially broken by brute-force.
+          Only 26 possible keys — trivially broken by brute-force or frequency analysis.
         </p>
 
         <label>Plain / Cipher Text</label>
@@ -52,16 +55,22 @@
       <div class="card">
         <h2>Vigenère Cipher &nbsp;<span class="badge medium">MEDIUM</span></h2>
         <p class="description">
-          An improvement over Caesar that uses a keyword instead of a single shift.
-          Each letter of the key applies a different shift — harder to brute-force,
-          but still vulnerable to frequency analysis.
+          Uses a keyword instead of a single shift. Each letter of the key applies a
+          different shift — harder to brute-force than Caesar, but still vulnerable to
+          frequency analysis once the key length is known.
         </p>
 
         <label>Plain / Cipher Text</label>
         <textarea id="vigenere-text" rows="3" placeholder="Enter text here..."></textarea>
 
-        <label>Keyword (letters only, e.g. SECRET)</label>
-        <input id="vigenere-key" type="text" placeholder="Enter keyword..." />
+        <div class="input-with-btn">
+          <div style="flex:1">
+            <label>Keyword (letters only)</label>
+            <input id="vigenere-key" type="text" placeholder="e.g. SECRET" />
+          </div>
+          <button class="gen-btn" onclick="generateKey('vigenere-key', 'alpha')"
+            title="Generate random keyword">&#x2B06; Generate</button>
+        </div>
 
         <div class="btn-row">
           <button onclick="vigenereAction('encrypt')">Encrypt</button>
@@ -77,32 +86,35 @@
       <div class="card">
         <h2>AES Cipher &nbsp;<span class="badge strong">STRONG</span></h2>
         <p class="description">
-          Advanced Encryption Standard with proper PBKDF2 key derivation.
-          Your password is never used directly — it goes through 200,000 rounds
-          of hashing to produce a strong 256-bit key. Choose between CBC and GCM mode below.
+          AES-256 with PBKDF2 key derivation (200,000 rounds). Your password is never
+          used directly — it is hashed 200,000 times with a random salt to produce a
+          strong 256-bit key. Choose CBC or GCM mode below.
         </p>
+
+        <!-- text encryption section -->
+        <h3 class="section-title">Text Encryption</h3>
 
         <label>Plain / Cipher Text</label>
         <textarea id="aes-text" rows="3" placeholder="Enter text here..."></textarea>
 
-        <label>Password</label>
-        <input id="aes-key" type="text" placeholder="Enter password..." />
+        <div class="input-with-btn">
+          <div style="flex:1">
+            <label>Password</label>
+            <input id="aes-key" type="text" placeholder="Enter password..." />
+          </div>
+          <button class="gen-btn" onclick="generateKey('aes-key', 'strong')" title="Generate strong password">&#x2B06;
+            Generate</button>
+        </div>
 
         <label>Mode</label>
         <div class="mode-selector">
           <label class="mode-option">
             <input type="radio" name="aes-mode" value="CBC" checked />
-            <span>
-              <b>CBC</b> — Cipher Block Chaining. Encrypts data in chained blocks.
-              Fast and widely supported.
-            </span>
+            <span><b>CBC</b> — Cipher Block Chaining. Encrypts in chained blocks. Fast and widely supported.</span>
           </label>
           <label class="mode-option">
             <input type="radio" name="aes-mode" value="GCM" />
-            <span>
-              <b>GCM</b> — Galois/Counter Mode. Encrypts and authenticates.
-              Detects if the ciphertext was tampered with.
-            </span>
+            <span><b>GCM</b> — Galois/Counter Mode. Encrypts and authenticates. Detects tampering on decrypt.</span>
           </label>
         </div>
 
@@ -112,6 +124,25 @@
         </div>
 
         <div id="aes-output" class="output hidden"></div>
+
+        <div class="divider"></div>
+
+        <!-- file encryption section -->
+        <h3 class="section-title">File Encryption</h3>
+        <p class="description" style="margin-bottom:12px">
+          Upload a .txt or .pdf file to encrypt or decrypt it. Uses the same password and mode selected above.
+          Files up to ~5MB supported.
+        </p>
+
+        <label>Select File</label>
+        <input type="file" id="aes-file" accept=".txt,.pdf,.enc" />
+
+        <div class="btn-row" style="margin-top:12px">
+          <button onclick="fileAction('encrypt')">Encrypt File</button>
+          <button onclick="fileAction('decrypt')">Decrypt File</button>
+        </div>
+
+        <div id="file-output" class="output hidden"></div>
       </div>
     </div>
 
@@ -126,10 +157,11 @@
         </p>
 
         <div class="info-box">
-          <b>Step 1</b> — Generate a key pair. Share the public key with anyone who needs to send you a message. Keep the private key secret.
+          <b>Step 1</b> — Generate a key pair. Share your public key with anyone who wants to send you a message. Never
+          share the private key.
         </div>
 
-        <div class="btn-row" style="margin-top: 14px;">
+        <div class="btn-row" style="margin-top:14px">
           <button onclick="rsaGenerate()">Generate Key Pair</button>
         </div>
 
@@ -147,7 +179,7 @@
           <b>Step 2</b> — Encrypt with the public key, decrypt with the private key.
         </div>
 
-        <label style="margin-top: 14px;">Plain / Cipher Text</label>
+        <label style="margin-top:14px">Plain / Cipher Text</label>
         <textarea id="rsa-text" rows="3" placeholder="Enter text here..."></textarea>
 
         <label>Public Key (for encryption)</label>
@@ -165,32 +197,73 @@
       </div>
     </div>
 
+    <!-- hash tab -->
+    <div id="tab-hash" class="tab-content">
+      <div class="card">
+        <h2>Hash Functions</h2>
+        <p class="description">
+          Hashing is one-way — you can hash a message but you cannot reverse a hash back to the original.
+          The same input always produces the same hash. Even a tiny change in the input produces a
+          completely different hash. Unlike encryption, there is no key and no decryption.
+        </p>
+
+        <label>Input Text</label>
+        <textarea id="hash-text" rows="3" placeholder="Enter text to hash..."></textarea>
+
+        <div class="btn-row">
+          <button onclick="hashAction('MD5')">Hash with MD5</button>
+          <button onclick="hashAction('SHA256')">Hash with SHA-256</button>
+          <button onclick="hashAction('SHA512')">Hash with SHA-512</button>
+        </div>
+
+        <div id="hash-output" class="output hidden"></div>
+
+        <div class="info-box" style="margin-top:20px">
+          <b>MD5</b> — 128-bit hash. Fast but broken for security purposes. Still used for checksums.<br><br>
+          <b>SHA-256</b> — 256-bit hash. Part of SHA-2 family. Used in TLS, Bitcoin, digital signatures.<br><br>
+          <b>SHA-512</b> — 512-bit hash. Stronger than SHA-256. Used where maximum hash strength is needed.
+        </div>
+      </div>
+    </div>
+
     <!-- attack tab -->
     <div id="tab-attack" class="tab-content">
       <div class="card">
         <h2>Attack Simulation</h2>
         <p class="description">
-          Enter a plaintext. The server encrypts it with Caesar and AES then
-          simulates a brute-force attack on each — showing the difference in security.
+          Two different attack techniques are demonstrated: frequency analysis on Caesar (no knowledge
+          of the original required), and a dictionary attack on AES (showing why weak passwords are
+          dangerous even with strong encryption). Use a longer text for more accurate frequency analysis.
         </p>
 
-        <label>Plaintext to Attack</label>
-        <input id="attack-text" type="text" value="Hello World" placeholder="Enter plaintext..." />
+        <label>Plaintext</label>
+        <input id="attack-text" type="text"
+          value="In the beginning there was darkness and then came the light of knowledge"
+          placeholder="Enter plaintext (longer = better frequency analysis)..." />
 
         <div class="btn-row">
           <button class="attack-btn" onclick="runAttack()">Run Attack Simulation</button>
         </div>
 
+        <div id="attack-loading" class="hidden loading-text">Running simulation...</div>
+
         <div id="attack-output" class="hidden">
 
+          <!-- caesar frequency analysis -->
           <div class="attack-card weak">
             <h3>Caesar Cipher &nbsp;<span class="badge weak">WEAK</span></h3>
-            <div id="caesar-attack-result"></div>
+            <p class="attack-method">Method 1: Frequency Analysis (attacker has no knowledge of original)</p>
+            <div id="caesar-freq-result"></div>
+
+            <p class="attack-method" style="margin-top:14px">Method 2: Brute-force (trying all 26 shifts)</p>
+            <div id="caesar-bf-result"></div>
           </div>
 
-          <div class="attack-card strong">
-            <h3>AES-256 + PBKDF2 &nbsp;<span class="badge strong">STRONG</span></h3>
-            <div id="aes-attack-result"></div>
+          <!-- aes dictionary attack -->
+          <div class="attack-card medium" style="margin-top:16px">
+            <h3>AES + Weak Password &nbsp;<span class="badge medium">CRACKED</span></h3>
+            <p class="attack-method">Method: Dictionary Attack — trying common passwords from a wordlist</p>
+            <div id="aes-dict-result"></div>
           </div>
 
           <div class="verdict">
@@ -199,7 +272,6 @@
 
         </div>
 
-        <div id="attack-loading" class="hidden loading-text">Running simulation...</div>
       </div>
     </div>
 
@@ -207,4 +279,5 @@
 
   <script src="script.js"></script>
 </body>
+
 </html>

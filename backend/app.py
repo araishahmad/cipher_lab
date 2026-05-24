@@ -6,6 +6,7 @@ from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Util.Padding import pad, unpad
 from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Hash import SHA256
+import hashlib
 import base64
 import time
 import os
@@ -13,7 +14,19 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# caesar cipher functions
+# common weak passwords used for the dictionary attack demo
+COMMON_PASSWORDS = [
+    "123456", "password", "123456789", "12345678", "12345", "1234567",
+    "password1", "1234567890", "abc123", "qwerty", "111111", "iloveyou",
+    "admin", "letmein", "monkey", "1234", "dragon", "master", "sunshine",
+    "princess", "welcome", "shadow", "superman", "michael", "football",
+    "baseball", "batman", "trustno1", "hello", "charlie", "donald",
+    "password123", "qwerty123", "passw0rd", "admin123", "login", "test",
+    "guest", "root", "secret", "changeme", "access", "summer", "winter",
+    "whatever", "nothing", "hunter2", "letmein1", "pass123", "pass1234"
+]
+
+# ── caesar ──────────────────────────────────────────────────
 
 def caesar_encrypt(text, shift):
     result = ""
@@ -28,7 +41,7 @@ def caesar_encrypt(text, shift):
 def caesar_decrypt(text, shift):
     return caesar_encrypt(text, -shift)
 
-# vigenere cipher functions
+# ── vigenere ─────────────────────────────────────────────────
 
 def vigenere_encrypt(text, key):
     result = ""
@@ -58,29 +71,26 @@ def vigenere_decrypt(text, key):
             result += char
     return result
 
-# aes functions — supports CBC and GCM modes, uses PBKDF2 for key derivation
+# ── aes (normal use) — PBKDF2 with 200,000 rounds ────────────
 
 def derive_key(password, salt):
-    # PBKDF2 turns the user's password into a proper 32-byte cryptographic key
-    # 200,000 iterations makes brute-forcing the password very slow
-    return PBKDF2(password, salt, dkLen=32, count=200000, prf=lambda p, s: SHA256.new(p + s).digest())
+    # 200,000 rounds makes brute-forcing the password very expensive
+    return PBKDF2(password, salt, dkLen=32, count=200000,
+                  prf=lambda p, s: SHA256.new(p + s).digest())
 
 def aes_encrypt(plaintext, password, mode):
-    salt = os.urandom(16)           # random salt for PBKDF2
+    salt = os.urandom(16)
     key  = derive_key(password.encode('utf-8'), salt)
 
     if mode == 'GCM':
         nonce  = os.urandom(16)
         cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
         ciphertext, tag = cipher.encrypt_and_digest(plaintext.encode('utf-8'))
-        # pack: salt + nonce + tag + ciphertext
         packed = salt + nonce + tag + ciphertext
-
-    else:  # CBC
+    else:
         iv     = os.urandom(16)
         cipher = AES.new(key, AES.MODE_CBC, iv)
         ciphertext = cipher.encrypt(pad(plaintext.encode('utf-8'), AES.block_size))
-        # pack: salt + iv + ciphertext
         packed = salt + iv + ciphertext
 
     return base64.b64encode(packed).decode('utf-8')
@@ -95,10 +105,8 @@ def aes_decrypt(ciphertext_b64, password, mode):
         tag        = raw[32:48]
         ciphertext = raw[48:]
         cipher     = AES.new(key, AES.MODE_GCM, nonce=nonce)
-        # verify_and_decrypt raises ValueError if the message was tampered with
         decrypted  = cipher.decrypt_and_verify(ciphertext, tag)
-
-    else:  # CBC
+    else:
         iv         = raw[16:32]
         ciphertext = raw[32:]
         cipher     = AES.new(key, AES.MODE_CBC, iv)
@@ -106,185 +114,270 @@ def aes_decrypt(ciphertext_b64, password, mode):
 
     return decrypted.decode('utf-8')
 
-# rsa functions
+# ── aes for files — same as above but works on raw bytes ─────
+
+def aes_encrypt_bytes(file_bytes, password, mode):
+    # encode the raw bytes as base64 string then encrypt that string
+    b64_data = base64.b64encode(file_bytes).decode('utf-8')
+    return aes_encrypt(b64_data, password, mode)
+
+def aes_decrypt_bytes(ciphertext_b64, password, mode):
+    b64_data = aes_decrypt(ciphertext_b64, password, mode)
+    return base64.b64decode(b64_data)
+
+# ── aes for dictionary attack demo — low rounds so demo is fast ──
+
+def derive_key_fast(password, salt):
+    # 1000 rounds only — used for the attack demo so it doesn't take minutes
+    # real PBKDF2 at 200,000 rounds would make 50 attempts take ~60 seconds
+    return PBKDF2(password, salt, dkLen=32, count=1000,
+                  prf=lambda p, s: SHA256.new(p + s).digest())
+
+def aes_encrypt_attack_demo(plaintext, password):
+    salt = os.urandom(16)
+    key  = derive_key_fast(password.encode('utf-8'), salt)
+    iv   = os.urandom(16)
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    encrypted = cipher.encrypt(pad(plaintext.encode('utf-8'), AES.block_size))
+    return base64.b64encode(salt + iv + encrypted).decode('utf-8')
+
+def aes_decrypt_attack_demo(ciphertext_b64, password):
+    raw  = base64.b64decode(ciphertext_b64)
+    salt = raw[:16]
+    iv   = raw[16:32]
+    enc  = raw[32:]
+    key  = derive_key_fast(password.encode('utf-8'), salt)
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    return unpad(cipher.decrypt(enc), AES.block_size).decode('utf-8')
+
+# ── rsa ───────────────────────────────────────────────────────
 
 def rsa_generate_keys():
     key = RSA.generate(2048)
-    private_key = key.export_key().decode('utf-8')
-    public_key  = key.publickey().export_key().decode('utf-8')
-    return public_key, private_key
+    return key.publickey().export_key().decode('utf-8'), key.export_key().decode('utf-8')
 
 def rsa_encrypt(plaintext, public_key_pem):
-    key    = RSA.import_key(public_key_pem)
-    cipher = PKCS1_OAEP.new(key)
-    encrypted = cipher.encrypt(plaintext.encode('utf-8'))
-    return base64.b64encode(encrypted).decode('utf-8')
+    cipher = PKCS1_OAEP.new(RSA.import_key(public_key_pem))
+    return base64.b64encode(cipher.encrypt(plaintext.encode('utf-8'))).decode('utf-8')
 
 def rsa_decrypt(ciphertext_b64, private_key_pem):
-    key    = RSA.import_key(private_key_pem)
-    cipher = PKCS1_OAEP.new(key)
-    decrypted = cipher.decrypt(base64.b64decode(ciphertext_b64))
-    return decrypted.decode('utf-8')
+    cipher = PKCS1_OAEP.new(RSA.import_key(private_key_pem))
+    return cipher.decrypt(base64.b64decode(ciphertext_b64)).decode('utf-8')
 
-# caesar routes
+# ── frequency analysis ────────────────────────────────────────
+
+def frequency_analysis_attack(ciphertext):
+    freq = {}
+    total = 0
+    for char in ciphertext.upper():
+        if char.isalpha():
+            freq[char] = freq.get(char, 0) + 1
+            total += 1
+
+    if not freq:
+        return None, None, {}
+
+    most_common = max(freq, key=freq.get)
+
+    # assume the most common letter in ciphertext maps to 'E' (most common in English)
+    deduced_shift = (ord(most_common) - ord('E')) % 26
+    cracked = caesar_decrypt(ciphertext, deduced_shift)
+
+    # top 8 letters by frequency for display
+    freq_pct = {k: round(v / total * 100, 1)
+                for k, v in sorted(freq.items(), key=lambda x: -x[1])[:8]}
+
+    return deduced_shift, cracked, freq_pct
+
+# ════════════════════════════════════════════════════════════
+# routes
+# ════════════════════════════════════════════════════════════
 
 @app.route('/caesar/encrypt', methods=['POST'])
 def route_caesar_encrypt():
-    data  = request.json
-    text  = data.get('text', '')
-    shift = int(data.get('shift', 3))
-    return jsonify({'result': caesar_encrypt(text, shift)})
+    data = request.json
+    return jsonify({'result': caesar_encrypt(data.get('text', ''), int(data.get('shift', 3)))})
 
 @app.route('/caesar/decrypt', methods=['POST'])
 def route_caesar_decrypt():
-    data  = request.json
-    text  = data.get('text', '')
-    shift = int(data.get('shift', 3))
-    return jsonify({'result': caesar_decrypt(text, shift)})
-
-# vigenere routes
+    data = request.json
+    return jsonify({'result': caesar_decrypt(data.get('text', ''), int(data.get('shift', 3)))})
 
 @app.route('/vigenere/encrypt', methods=['POST'])
 def route_vigenere_encrypt():
     data = request.json
-    text = data.get('text', '')
     key  = data.get('key', '')
     if not key or not key.isalpha():
         return jsonify({'error': 'Key must contain letters only.'}), 400
-    return jsonify({'result': vigenere_encrypt(text, key)})
+    return jsonify({'result': vigenere_encrypt(data.get('text', ''), key)})
 
 @app.route('/vigenere/decrypt', methods=['POST'])
 def route_vigenere_decrypt():
     data = request.json
-    text = data.get('text', '')
     key  = data.get('key', '')
     if not key or not key.isalpha():
         return jsonify({'error': 'Key must contain letters only.'}), 400
-    return jsonify({'result': vigenere_decrypt(text, key)})
-
-# aes routes
+    return jsonify({'result': vigenere_decrypt(data.get('text', ''), key)})
 
 @app.route('/aes/encrypt', methods=['POST'])
 def route_aes_encrypt():
-    data     = request.json
-    text     = data.get('text', '')
-    password = data.get('key', '')
-    mode     = data.get('mode', 'CBC').upper()
+    data = request.json
+    mode = data.get('mode', 'CBC').upper()
     if mode not in ('CBC', 'GCM'):
         return jsonify({'error': 'Mode must be CBC or GCM.'}), 400
-    result = aes_encrypt(text, password, mode)
-    return jsonify({'result': result})
+    return jsonify({'result': aes_encrypt(data.get('text', ''), data.get('key', ''), mode)})
 
 @app.route('/aes/decrypt', methods=['POST'])
 def route_aes_decrypt():
-    data     = request.json
-    text     = data.get('text', '')
-    password = data.get('key', '')
-    mode     = data.get('mode', 'CBC').upper()
+    data = request.json
+    mode = data.get('mode', 'CBC').upper()
     if mode not in ('CBC', 'GCM'):
         return jsonify({'error': 'Mode must be CBC or GCM.'}), 400
     try:
-        result = aes_decrypt(text, password, mode)
-        return jsonify({'result': result})
+        return jsonify({'result': aes_decrypt(data.get('text', ''), data.get('key', ''), mode)})
     except ValueError:
-        # GCM raises ValueError if the tag doesn't match (tampered message)
         return jsonify({'error': 'Decryption failed. Wrong password or message was tampered with.'}), 400
     except Exception:
         return jsonify({'error': 'Decryption failed. Wrong password or corrupted ciphertext.'}), 400
 
-# rsa routes
+@app.route('/aes/encrypt-file', methods=['POST'])
+def route_aes_encrypt_file():
+    data     = request.json
+    file_b64 = data.get('file_data', '')
+    password = data.get('key', '')
+    mode     = data.get('mode', 'CBC').upper()
+    if not file_b64 or not password:
+        return jsonify({'error': 'File data and password are required.'}), 400
+    try:
+        file_bytes = base64.b64decode(file_b64)
+        encrypted  = aes_encrypt_bytes(file_bytes, password, mode)
+        return jsonify({'result': encrypted})
+    except Exception as e:
+        return jsonify({'error': 'File encryption failed.'}), 400
+
+@app.route('/aes/decrypt-file', methods=['POST'])
+def route_aes_decrypt_file():
+    data      = request.json
+    encrypted = data.get('file_data', '')
+    password  = data.get('key', '')
+    mode      = data.get('mode', 'CBC').upper()
+    if not encrypted or not password:
+        return jsonify({'error': 'File data and password are required.'}), 400
+    try:
+        file_bytes = aes_decrypt_bytes(encrypted, password, mode)
+        return jsonify({'result': base64.b64encode(file_bytes).decode('utf-8')})
+    except ValueError:
+        return jsonify({'error': 'Decryption failed. Wrong password or tampered file.'}), 400
+    except Exception:
+        return jsonify({'error': 'Decryption failed.'}), 400
 
 @app.route('/rsa/generate', methods=['GET'])
 def route_rsa_generate():
-    public_key, private_key = rsa_generate_keys()
-    return jsonify({'public_key': public_key, 'private_key': private_key})
+    pub, priv = rsa_generate_keys()
+    return jsonify({'public_key': pub, 'private_key': priv})
 
 @app.route('/rsa/encrypt', methods=['POST'])
 def route_rsa_encrypt():
-    data       = request.json
-    text       = data.get('text', '')
-    public_key = data.get('public_key', '')
-    if not public_key:
+    data = request.json
+    if not data.get('public_key'):
         return jsonify({'error': 'Public key is required.'}), 400
     try:
-        result = rsa_encrypt(text, public_key)
-        return jsonify({'result': result})
-    except Exception as e:
+        return jsonify({'result': rsa_encrypt(data.get('text', ''), data['public_key'])})
+    except Exception:
         return jsonify({'error': 'Encryption failed. Check your public key.'}), 400
 
 @app.route('/rsa/decrypt', methods=['POST'])
 def route_rsa_decrypt():
-    data        = request.json
-    text        = data.get('text', '')
-    private_key = data.get('private_key', '')
-    if not private_key:
+    data = request.json
+    if not data.get('private_key'):
         return jsonify({'error': 'Private key is required.'}), 400
     try:
-        result = rsa_decrypt(text, private_key)
-        return jsonify({'result': result})
-    except Exception as e:
+        return jsonify({'result': rsa_decrypt(data.get('text', ''), data['private_key'])})
+    except Exception:
         return jsonify({'error': 'Decryption failed. Wrong private key or corrupted ciphertext.'}), 400
 
-# attack simulation route
+@app.route('/hash', methods=['POST'])
+def route_hash():
+    data = request.json
+    text = data.get('text', '')
+    alg  = data.get('algorithm', 'SHA256')
+    if alg == 'MD5':
+        result = hashlib.md5(text.encode('utf-8')).hexdigest()
+        bits   = 128
+    elif alg == 'SHA256':
+        result = hashlib.sha256(text.encode('utf-8')).hexdigest()
+        bits   = 256
+    elif alg == 'SHA512':
+        result = hashlib.sha512(text.encode('utf-8')).hexdigest()
+        bits   = 512
+    else:
+        return jsonify({'error': 'Unsupported algorithm.'}), 400
+    return jsonify({'hash': result, 'algorithm': alg, 'bits': bits, 'length': len(result)})
 
 @app.route('/attack', methods=['POST'])
 def route_attack():
     data      = request.json
-    plaintext = data.get('text', 'Hello')
+    plaintext = data.get('text', 'Hello World')
 
-    # brute force caesar - just try all 26 shifts
-    shift = 7
+    # caesar — encrypt with shift 11 then run frequency analysis (no knowledge of original)
+    shift = 11
     caesar_ciphertext = caesar_encrypt(plaintext, shift)
 
     start = time.time()
-    caesar_cracked_shift = None
-    caesar_cracked_text  = None
+    deduced_shift, freq_cracked, freq_table = frequency_analysis_attack(caesar_ciphertext)
+    freq_time = round((time.time() - start) * 1000, 4)
 
+    # also run brute force to compare
+    start = time.time()
+    bf_shift, bf_cracked = None, None
     for s in range(26):
         attempt = caesar_decrypt(caesar_ciphertext, s)
         if attempt.lower() == plaintext.lower():
-            caesar_cracked_shift = s
-            caesar_cracked_text  = attempt
+            bf_shift  = s
+            bf_cracked = attempt
             break
+    bf_time = round((time.time() - start) * 1000, 4)
 
-    caesar_time = round((time.time() - start) * 1000, 4)
+    # aes — encrypt with weak password "password123" (in the wordlist)
+    weak_password  = "password123"
+    aes_ciphertext = aes_encrypt_attack_demo(plaintext, weak_password)
 
-    # brute force aes - try 1000 random passwords, none will work
-    aes_ciphertext = aes_encrypt(plaintext, 'mySecretPassword', 'CBC')
+    start   = time.time()
+    cracked_password = None
+    cracked_text     = None
 
-    start    = time.time()
-    attempts = 1000
-    cracked  = False
-
-    for _ in range(attempts):
-        random_password = base64.b64encode(os.urandom(12)).decode('utf-8')[:16]
+    for pwd in COMMON_PASSWORDS:
         try:
-            result = aes_decrypt(aes_ciphertext, random_password, 'CBC')
+            result = aes_decrypt_attack_demo(aes_ciphertext, pwd)
             if result == plaintext:
-                cracked = True
+                cracked_password = pwd
+                cracked_text     = result
                 break
         except Exception:
             pass
 
-    aes_time = round((time.time() - start) * 1000, 4)
+    dict_time = round((time.time() - start) * 1000, 4)
 
     return jsonify({
         'caesar': {
-            'ciphertext':    caesar_ciphertext,
-            'shift_used':    shift,
-            'cracked_shift': caesar_cracked_shift,
-            'cracked_text':  caesar_cracked_text,
-            'time_ms':       caesar_time,
-            'keys_tried':    26,
-            'verdict':       'WEAK – cracked instantly by trying all 26 shifts'
+            'ciphertext':      caesar_ciphertext,
+            'shift_used':      shift,
+            'freq_table':      freq_table,
+            'deduced_shift':   deduced_shift,
+            'freq_cracked':    freq_cracked,
+            'freq_time_ms':    freq_time,
+            'bf_shift':        bf_shift,
+            'bf_cracked':      bf_cracked,
+            'bf_time_ms':      bf_time,
         },
         'aes': {
-            'ciphertext':  aes_ciphertext[:40] + '...',
-            'keys_tried':  attempts,
-            'cracked':     cracked,
-            'time_ms':     aes_time,
-            'total_keys':  '2^256 ≈ 1.15 × 10^77',
-            'verdict':     'STRONG – brute-force is computationally infeasible'
+            'ciphertext':        aes_ciphertext[:48] + '...',
+            'weak_password':     weak_password,
+            'wordlist_size':     len(COMMON_PASSWORDS),
+            'cracked_password':  cracked_password,
+            'cracked_text':      cracked_text,
+            'time_ms':           dict_time,
+            'note':              'Demo uses 1,000 PBKDF2 rounds. Real systems use 200,000 — making each attempt ~200x slower.',
         }
     })
 

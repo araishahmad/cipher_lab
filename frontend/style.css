@@ -45,7 +45,7 @@ main {
 }
 
 .tab-btn {
-  padding: 9px 18px;
+  padding: 9px 16px;
   border: 2px solid #ccc;
   background: #fff;
   border-radius: 6px;
@@ -104,6 +104,16 @@ main {
   line-height: 1.6;
 }
 
+/* section titles inside a card */
+.section-title {
+  font-size: 15px;
+  color: #333;
+  margin-top: 8px;
+  margin-bottom: 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #eee;
+}
+
 label {
   display: block;
   font-size: 13px;
@@ -115,7 +125,8 @@ label {
 
 textarea,
 input[type="text"],
-input[type="number"] {
+input[type="number"],
+input[type="file"] {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid #ccc;
@@ -128,7 +139,7 @@ input[type="number"] {
 }
 
 textarea:focus,
-input:focus {
+input[type="text"]:focus {
   border-color: #1a1a2e;
 }
 
@@ -136,7 +147,34 @@ input[type="number"] {
   width: 100px;
 }
 
-/* mode selector for aes */
+input[type="file"] {
+  font-family: Arial, sans-serif;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+/* input + generate button side by side */
+.input-with-btn {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.gen-btn {
+  padding: 10px 14px;
+  font-size: 12px;
+  white-space: nowrap;
+  background: #3a3a5e;
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.gen-btn:hover {
+  background: #1a1a2e;
+}
+
+/* mode selector */
 .mode-selector {
   display: flex;
   flex-direction: column;
@@ -157,6 +195,7 @@ input[type="number"] {
   color: #333;
   margin-top: 0;
   transition: border-color 0.2s, background 0.2s;
+  line-height: 1.5;
 }
 
 .mode-option:hover {
@@ -168,13 +207,10 @@ input[type="number"] {
   width: auto;
   margin-top: 2px;
   flex-shrink: 0;
+  padding: 0;
 }
 
-.mode-option span {
-  line-height: 1.5;
-}
-
-/* info box for rsa steps */
+/* info box */
 .info-box {
   background: #f0f4ff;
   border-left: 3px solid #1a1a2e;
@@ -182,11 +218,11 @@ input[type="number"] {
   border-radius: 0 6px 6px 0;
   font-size: 13px;
   color: #333;
-  line-height: 1.5;
+  line-height: 1.6;
   margin-top: 16px;
 }
 
-/* divider between rsa sections */
+/* divider */
 .divider {
   border: none;
   border-top: 1px solid #eee;
@@ -198,15 +234,16 @@ input[type="number"] {
   margin-top: 18px;
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 button {
-  padding: 10px 24px;
+  padding: 10px 22px;
   border: none;
   border-radius: 6px;
   background: #1a1a2e;
   color: #fff;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: bold;
   cursor: pointer;
   transition: background 0.2s;
@@ -245,11 +282,16 @@ button:disabled {
 
 .output .label {
   font-weight: bold;
-  color: #444;
-  margin-bottom: 4px;
+  color: #555;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  margin-bottom: 2px;
+  margin-top: 8px;
+}
+
+.output .label:first-child {
+  margin-top: 0;
 }
 
 .output .value {
@@ -260,7 +302,14 @@ button:disabled {
   color: #b00020;
 }
 
-/* weak/medium/strong badges */
+/* hash output — monospace with letter spacing */
+.hash-value {
+  letter-spacing: 1px;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+/* badges */
 .badge {
   font-size: 11px;
   font-weight: bold;
@@ -274,7 +323,7 @@ button:disabled {
 .badge.medium     { background: #fff4e0; color: #b85c00; }
 .badge.strong     { background: #e6f4ea; color: #1a7431; }
 
-/* attack result cards */
+/* attack tab cards */
 .attack-card {
   margin-top: 20px;
   border-radius: 8px;
@@ -282,14 +331,22 @@ button:disabled {
 }
 
 .attack-card.weak   { background: #fff5f7; border: 1px solid #f5b8c4; }
+.attack-card.medium { background: #fffbf0; border: 1px solid #f5dfa8; }
 .attack-card.strong { background: #f4faf5; border: 1px solid #a8d5b5; }
 
 .attack-card h3 {
   font-size: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.attack-method {
+  font-size: 12px;
+  color: #777;
+  margin-bottom: 10px;
+  font-style: italic;
 }
 
 .attack-card table {
@@ -305,20 +362,42 @@ button:disabled {
 }
 
 .attack-card table td:first-child {
-  width: 140px;
+  width: 200px;
   font-weight: bold;
   color: #555;
+  padding-right: 10px;
+}
+
+/* frequency table inside attack results */
+.freq-table {
+  width: auto;
+  font-size: 12px;
+}
+
+.freq-table td {
+  padding: 2px 8px 2px 0 !important;
+  border: none !important;
+  width: auto !important;
+  font-weight: normal !important;
+  color: #333 !important;
+}
+
+.attack-note {
+  font-size: 12px;
+  color: #888;
+  font-style: italic;
+  margin-top: 8px;
 }
 
 /* verdict box */
 .verdict {
   margin-top: 20px;
-  padding: 16px 20px;
+  padding: 18px 20px;
   background: #1a1a2e;
   color: #fff;
   border-radius: 8px;
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.8;
 }
 
 .loading-text {
@@ -334,4 +413,7 @@ button:disabled {
 @media (max-width: 540px) {
   .tabs { flex-direction: column; }
   .btn-row { flex-direction: column; }
+  .input-with-btn { flex-direction: column; align-items: stretch; }
+  .gen-btn { width: 100%; }
+  .attack-card table td:first-child { width: 130px; }
 }
