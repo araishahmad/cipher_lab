@@ -1,277 +1,471 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cipher Comparison Tool</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CipherLab — Cryptography Toolkit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css"/>
 </head>
-
 <body>
 
+  <!-- Two decorative layers behind the UI: a faint grid pattern and a top-center glow -->
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
   <header>
-    <h1>Cipher Comparison Tool</h1>
-    <p>Classical vs Modern Encryption &mdash; Encrypt, Decrypt, Hash &amp; Attack Simulation</p>
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-bracket">[</span>
+        <span class="logo-text">CIPHER<span class="logo-accent">LAB</span></span>
+        <span class="logo-bracket">]</span>
+      </div>
+      <p class="tagline">Advanced Cryptography Toolkit — Encrypt · Decrypt · Analyze · Attack</p>
+    </div>
   </header>
 
   <main>
 
-    <div class="tabs">
-      <button class="tab-btn active" onclick="showTab('caesar')">Caesar</button>
-      <button class="tab-btn" onclick="showTab('vigenere')">Vigenère</button>
-      <button class="tab-btn" onclick="showTab('aes')">AES</button>
-      <button class="tab-btn" onclick="showTab('rsa')">RSA</button>
-      <button class="tab-btn" onclick="showTab('hash')">Hash</button>
-      <button class="tab-btn attack-tab" onclick="showTab('attack')">Attack Simulation</button>
-    </div>
+    <!-- Tab navigation row — clicking a button swaps the visible cipher panel -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" onclick="showTab('caesar')" data-tab="caesar">
+        <span class="tab-icon">①</span> Caesar
+      </button>
+      <button class="tab-btn" onclick="showTab('vigenere')" data-tab="vigenere">
+        <span class="tab-icon">②</span> Vigenère
+      </button>
+      <button class="tab-btn" onclick="showTab('aes')" data-tab="aes">
+        <span class="tab-icon">③</span> AES
+      </button>
+      <button class="tab-btn" onclick="showTab('rsa')" data-tab="rsa">
+        <span class="tab-icon">④</span> RSA
+      </button>
+      <button class="tab-btn" onclick="showTab('hash')" data-tab="hash">
+        <span class="tab-icon">⑤</span> Hash
+      </button>
+      <button class="tab-btn tab-attack" onclick="showTab('attack')" data-tab="attack">
+        <span class="tab-icon">⚔</span> Attack Sim
+      </button>
+    </nav>
 
-    <!-- caesar tab -->
+    <!-- ==================== CAESAR CIPHER PANEL ==================== -->
     <div id="tab-caesar" class="tab-content active">
-      <div class="card">
-        <h2>Caesar Cipher &nbsp;<span class="badge weak">WEAK</span></h2>
-        <p class="description">
-          A classical substitution cipher that shifts each letter by a fixed number.
-          Only 26 possible keys — trivially broken by brute-force or frequency analysis.
-        </p>
-
-        <label>Plain / Cipher Text</label>
-        <textarea id="caesar-text" rows="3" placeholder="Enter text here..."></textarea>
-
-        <label>Shift (1 – 25)</label>
-        <input id="caesar-shift" type="number" min="1" max="25" value="3" />
-
-        <div class="btn-row">
-          <button onclick="caesarAction('encrypt')">Encrypt</button>
-          <button onclick="caesarAction('decrypt')">Decrypt</button>
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Caesar Cipher</h2>
+            <p class="panel-desc">Classical shift cipher — shifts every letter by a fixed amount. Invented by Julius Caesar around 58 BC. With only 26 possible keys it is trivially broken by brute-force or frequency analysis.</p>
+          </div>
+          <span class="strength-pill weak">WEAK</span>
         </div>
 
-        <div id="caesar-output" class="output hidden"></div>
+        <div class="form-grid">
+          <div class="form-col">
+            <label class="field-label">Input Text</label>
+            <textarea id="caesar-text" class="field-textarea" rows="4" placeholder="Enter plaintext or ciphertext..."></textarea>
+
+            <label class="field-label">Shift Value <span class="field-hint">1 – 25</span></label>
+            <div class="shift-control">
+              <button class="shift-dec" onclick="adjustShift(-1)">−</button>
+              <input id="caesar-shift" type="number" min="1" max="25" value="3" class="shift-input"/>
+              <button class="shift-inc" onclick="adjustShift(1)">+</button>
+              <div class="shift-alphabet" id="shift-preview"></div>
+            </div>
+
+            <div class="btn-row">
+              <button class="btn-primary" onclick="caesarAction('encrypt')">
+                <span class="btn-icon">🔒</span> Encrypt
+              </button>
+              <button class="btn-secondary" onclick="caesarAction('decrypt')">
+                <span class="btn-icon">🔓</span> Decrypt
+              </button>
+            </div>
+          </div>
+
+          <div class="form-col">
+            <label class="field-label">Output</label>
+            <div id="caesar-output" class="result-box">
+              <div class="result-placeholder">
+                <span class="placeholder-icon">⟶</span>
+                <span>Result will appear here</span>
+              </div>
+            </div>
+            <!-- Shift visualization box, hidden until the user runs encrypt/decrypt -->
+            <div id="caesar-viz" class="viz-box hidden">
+              <div class="viz-title">Shift Visualization</div>
+              <div id="caesar-alphabet-viz" class="alphabet-viz"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- vigenere tab -->
+    <!-- ==================== VIGENÈRE CIPHER PANEL ==================== -->
     <div id="tab-vigenere" class="tab-content">
-      <div class="card">
-        <h2>Vigenère Cipher &nbsp;<span class="badge medium">MEDIUM</span></h2>
-        <p class="description">
-          Uses a keyword instead of a single shift. Each letter of the key applies a
-          different shift — harder to brute-force than Caesar, but still vulnerable to
-          frequency analysis once the key length is known.
-        </p>
-
-        <label>Plain / Cipher Text</label>
-        <textarea id="vigenere-text" rows="3" placeholder="Enter text here..."></textarea>
-
-        <div class="input-with-btn">
-          <div style="flex:1">
-            <label>Keyword (letters only)</label>
-            <input id="vigenere-key" type="text" placeholder="e.g. SECRET" />
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Vigenère Cipher</h2>
+            <p class="panel-desc">Polyalphabetic substitution cipher using a repeating keyword. Each letter of the key applies a different Caesar shift. Stronger than Caesar but still broken by frequency analysis once the key length is determined.</p>
           </div>
-          <button class="gen-btn" onclick="generateKey('vigenere-key', 'alpha')"
-            title="Generate random keyword">&#x2B06; Generate</button>
+          <span class="strength-pill medium">MEDIUM</span>
         </div>
 
-        <div class="btn-row">
-          <button onclick="vigenereAction('encrypt')">Encrypt</button>
-          <button onclick="vigenereAction('decrypt')">Decrypt</button>
-        </div>
+        <div class="form-grid">
+          <div class="form-col">
+            <label class="field-label">Input Text</label>
+            <textarea id="vigenere-text" class="field-textarea" rows="4" placeholder="Enter plaintext or ciphertext..."></textarea>
 
-        <div id="vigenere-output" class="output hidden"></div>
+            <label class="field-label">Keyword <span class="field-hint">letters only</span></label>
+            <div class="key-row">
+              <input id="vigenere-key" type="text" class="field-input" placeholder="e.g. SECRET"/>
+              <button class="btn-gen" onclick="generateKey('vigenere-key','alpha')">⚡ Generate</button>
+            </div>
+
+            <div class="btn-row">
+              <button class="btn-primary" onclick="vigenereAction('encrypt')">
+                <span class="btn-icon">🔒</span> Encrypt
+              </button>
+              <button class="btn-secondary" onclick="vigenereAction('decrypt')">
+                <span class="btn-icon">🔓</span> Decrypt
+              </button>
+            </div>
+          </div>
+
+          <div class="form-col">
+            <label class="field-label">Output</label>
+            <div id="vigenere-output" class="result-box">
+              <div class="result-placeholder">
+                <span class="placeholder-icon">⟶</span>
+                <span>Result will appear here</span>
+              </div>
+            </div>
+            <div id="vigenere-viz" class="viz-box hidden">
+              <div class="viz-title">Key Expansion</div>
+              <div id="vigenere-key-viz" class="key-expansion-viz"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- aes tab -->
+    <!-- ==================== AES CIPHER PANEL ==================== -->
     <div id="tab-aes" class="tab-content">
-      <div class="card">
-        <h2>AES Cipher &nbsp;<span class="badge strong">STRONG</span></h2>
-        <p class="description">
-          AES-256 with PBKDF2 key derivation (200,000 rounds). Your password is never
-          used directly — it is hashed 200,000 times with a random salt to produce a
-          strong 256-bit key. Choose CBC or GCM mode below.
-        </p>
-
-        <!-- text encryption section -->
-        <h3 class="section-title">Text Encryption</h3>
-
-        <label>Plain / Cipher Text</label>
-        <textarea id="aes-text" rows="3" placeholder="Enter text here..."></textarea>
-
-        <div class="input-with-btn">
-          <div style="flex:1">
-            <label>Password</label>
-            <input id="aes-key" type="text" placeholder="Enter password..." />
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>AES Cipher</h2>
+            <p class="panel-desc">Advanced Encryption Standard — 256-bit symmetric block cipher with PBKDF2 key derivation (200,000 rounds). Your password is never used directly as the key. Industry standard for secure data encryption.</p>
           </div>
-          <button class="gen-btn" onclick="generateKey('aes-key', 'strong')" title="Generate strong password">&#x2B06;
-            Generate</button>
+          <span class="strength-pill strong">STRONG</span>
         </div>
 
-        <label>Mode</label>
-        <div class="mode-selector">
-          <label class="mode-option">
-            <input type="radio" name="aes-mode" value="CBC" checked />
-            <span><b>CBC</b> — Cipher Block Chaining. Encrypts in chained blocks. Fast and widely supported.</span>
+        <!-- CBC / GCM toggle, with a description that updates dynamically -->
+        <div class="mode-toggle-bar">
+          <span class="mode-toggle-label">Mode:</span>
+          <label class="mode-toggle-pill">
+            <input type="radio" name="aes-mode" value="CBC" checked onchange="updateModeInfo()"/>
+            <span>CBC</span>
           </label>
-          <label class="mode-option">
-            <input type="radio" name="aes-mode" value="GCM" />
-            <span><b>GCM</b> — Galois/Counter Mode. Encrypts and authenticates. Detects tampering on decrypt.</span>
+          <label class="mode-toggle-pill">
+            <input type="radio" name="aes-mode" value="GCM" onchange="updateModeInfo()"/>
+            <span>GCM</span>
           </label>
+          <span id="mode-info-text" class="mode-info">Cipher Block Chaining — each block XORed with previous ciphertext block</span>
         </div>
 
-        <div class="btn-row">
-          <button onclick="aesAction('encrypt')">Encrypt</button>
-          <button onclick="aesAction('decrypt')">Decrypt</button>
+        <!-- Text encryption section inside the AES panel -->
+        <h3 class="section-heading">Text Encryption</h3>
+        <div class="form-grid">
+          <div class="form-col">
+            <label class="field-label">Input Text</label>
+            <textarea id="aes-text" class="field-textarea" rows="4" placeholder="Enter plaintext or ciphertext..."></textarea>
+
+            <label class="field-label">Password</label>
+            <div class="key-row">
+              <input id="aes-key" type="text" class="field-input" placeholder="Enter password..."/>
+              <button class="btn-gen" onclick="generateKey('aes-key','strong')">⚡ Generate</button>
+            </div>
+
+            <div class="btn-row">
+              <button class="btn-primary" onclick="aesAction('encrypt')">
+                <span class="btn-icon">🔒</span> Encrypt
+              </button>
+              <button class="btn-secondary" onclick="aesAction('decrypt')">
+                <span class="btn-icon">🔓</span> Decrypt
+              </button>
+            </div>
+          </div>
+
+          <div class="form-col">
+            <label class="field-label">Output</label>
+            <div id="aes-output" class="result-box">
+              <div class="result-placeholder">
+                <span class="placeholder-icon">⟶</span>
+                <span>Result will appear here</span>
+              </div>
+            </div>
+            <div id="aes-viz" class="viz-box hidden">
+              <div class="viz-title">Encryption Pipeline</div>
+              <div id="aes-pipeline-viz" class="pipeline-viz"></div>
+            </div>
+          </div>
         </div>
 
-        <div id="aes-output" class="output hidden"></div>
+        <div class="section-divider"></div>
 
-        <div class="divider"></div>
-
-        <!-- file encryption section -->
-        <h3 class="section-title">File Encryption</h3>
-        <p class="description" style="margin-bottom:12px">
-          Upload a .txt or .pdf file to encrypt or decrypt it. Uses the same password and mode selected above.
-          Files up to ~5MB supported.
-        </p>
-
-        <label>Select File</label>
-        <input type="file" id="aes-file" accept=".txt,.pdf,.enc" />
-
-        <div class="btn-row" style="margin-top:12px">
-          <button onclick="fileAction('encrypt')">Encrypt File</button>
-          <button onclick="fileAction('decrypt')">Decrypt File</button>
+        <!-- File upload and encryption section inside the AES panel -->
+        <h3 class="section-heading">File Encryption</h3>
+        <div class="file-zone" id="file-drop-zone" onclick="document.getElementById('aes-file').click()">
+          <div class="file-zone-icon">📁</div>
+          <div class="file-zone-text">Click to select a file <span class="file-zone-hint">(.txt or .pdf, up to 5MB)</span></div>
+          <div id="file-name-display" class="file-name-display hidden"></div>
         </div>
-
-        <div id="file-output" class="output hidden"></div>
-      </div>
-    </div>
-
-    <!-- rsa tab -->
-    <div id="tab-rsa" class="tab-content">
-      <div class="card">
-        <h2>RSA Cipher &nbsp;<span class="badge strong">ASYMMETRIC</span></h2>
-        <p class="description">
-          RSA uses two different keys — a public key to encrypt and a private key to decrypt.
-          Anyone can encrypt with the public key, but only the private key holder can read the message.
-          This is fundamentally different from AES where both sides share the same key.
-        </p>
-
-        <div class="info-box">
-          <b>Step 1</b> — Generate a key pair. Share your public key with anyone who wants to send you a message. Never
-          share the private key.
-        </div>
+        <input type="file" id="aes-file" accept=".txt,.pdf,.enc" style="display:none" onchange="onFileSelected()"/>
 
         <div class="btn-row" style="margin-top:14px">
-          <button onclick="rsaGenerate()">Generate Key Pair</button>
+          <button class="btn-primary" onclick="fileAction('encrypt')">
+            <span class="btn-icon">🔒</span> Encrypt File
+          </button>
+          <button class="btn-secondary" onclick="fileAction('decrypt')">
+            <span class="btn-icon">🔓</span> Decrypt File
+          </button>
+        </div>
+
+        <div id="file-output" class="result-box hidden" style="margin-top:16px"></div>
+      </div>
+    </div>
+
+    <!-- ==================== RSA CIPHER PANEL ==================== -->
+    <div id="tab-rsa" class="tab-content">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>RSA Cipher</h2>
+            <p class="panel-desc">Asymmetric encryption using a public/private key pair. Encrypt with the public key — only the private key can decrypt. No shared secret required. Based on the mathematical difficulty of factoring large primes.</p>
+          </div>
+          <span class="strength-pill strong">ASYMMETRIC</span>
+        </div>
+
+        <!-- Step 1: generate the key pair before using encrypt/decrypt -->
+        <div class="rsa-keygen-block">
+          <div class="rsa-keygen-label">
+            <span class="step-badge">01</span>
+            Generate a 2048-bit key pair
+          </div>
+          <button class="btn-primary" onclick="rsaGenerate()" id="rsa-gen-btn">
+            <span class="btn-icon">⚙</span> Generate Key Pair
+          </button>
         </div>
 
         <div id="rsa-keys" class="hidden">
-          <label>Public Key (share this)</label>
-          <textarea id="rsa-public-key" rows="6" readonly></textarea>
-
-          <label>Private Key (keep this secret)</label>
-          <textarea id="rsa-private-key" rows="6" readonly></textarea>
+          <div class="key-display-grid">
+            <div class="key-display-block">
+              <div class="key-display-header public">
+                <span>🔑 Public Key</span>
+                <button class="copy-btn" onclick="copyText('rsa-public-key')">Copy</button>
+              </div>
+              <textarea id="rsa-public-key" class="key-textarea" rows="5" readonly></textarea>
+            </div>
+            <div class="key-display-block">
+              <div class="key-display-header private">
+                <span>🔐 Private Key</span>
+                <button class="copy-btn" onclick="copyText('rsa-private-key')">Copy</button>
+              </div>
+              <textarea id="rsa-private-key" class="key-textarea" rows="5" readonly></textarea>
+            </div>
+          </div>
         </div>
 
-        <div class="divider"></div>
+        <div class="section-divider"></div>
 
-        <div class="info-box">
-          <b>Step 2</b> — Encrypt with the public key, decrypt with the private key.
+        <div class="rsa-keygen-label" style="margin-bottom:16px">
+          <span class="step-badge">02</span>
+          Encrypt with public key · Decrypt with private key
         </div>
 
-        <label style="margin-top:14px">Plain / Cipher Text</label>
-        <textarea id="rsa-text" rows="3" placeholder="Enter text here..."></textarea>
+        <div class="form-grid">
+          <div class="form-col">
+            <label class="field-label">Input Text</label>
+            <textarea id="rsa-text" class="field-textarea" rows="3" placeholder="Enter text..."></textarea>
 
-        <label>Public Key (for encryption)</label>
-        <textarea id="rsa-pub-input" rows="5" placeholder="Paste public key here..."></textarea>
+            <label class="field-label">Public Key <span class="field-hint">for encryption</span></label>
+            <textarea id="rsa-pub-input" class="field-textarea" rows="4" placeholder="Paste public key..."></textarea>
 
-        <label>Private Key (for decryption)</label>
-        <textarea id="rsa-priv-input" rows="5" placeholder="Paste private key here..."></textarea>
+            <label class="field-label">Private Key <span class="field-hint">for decryption</span></label>
+            <textarea id="rsa-priv-input" class="field-textarea" rows="4" placeholder="Paste private key..."></textarea>
 
-        <div class="btn-row">
-          <button onclick="rsaAction('encrypt')">Encrypt</button>
-          <button onclick="rsaAction('decrypt')">Decrypt</button>
+            <div class="btn-row">
+              <button class="btn-primary" onclick="rsaAction('encrypt')">
+                <span class="btn-icon">🔒</span> Encrypt
+              </button>
+              <button class="btn-secondary" onclick="rsaAction('decrypt')">
+                <span class="btn-icon">🔓</span> Decrypt
+              </button>
+            </div>
+          </div>
+
+          <div class="form-col">
+            <label class="field-label">Output</label>
+            <div id="rsa-output" class="result-box">
+              <div class="result-placeholder">
+                <span class="placeholder-icon">⟶</span>
+                <span>Result will appear here</span>
+              </div>
+            </div>
+            <div id="rsa-viz" class="viz-box hidden">
+              <div class="viz-title">Asymmetric Flow</div>
+              <div id="rsa-flow-viz" class="rsa-flow-viz"></div>
+            </div>
+          </div>
         </div>
-
-        <div id="rsa-output" class="output hidden"></div>
       </div>
     </div>
 
-    <!-- hash tab -->
+    <!-- ==================== HASH FUNCTIONS PANEL ==================== -->
     <div id="tab-hash" class="tab-content">
-      <div class="card">
-        <h2>Hash Functions</h2>
-        <p class="description">
-          Hashing is one-way — you can hash a message but you cannot reverse a hash back to the original.
-          The same input always produces the same hash. Even a tiny change in the input produces a
-          completely different hash. Unlike encryption, there is no key and no decryption.
-        </p>
-
-        <label>Input Text</label>
-        <textarea id="hash-text" rows="3" placeholder="Enter text to hash..."></textarea>
-
-        <div class="btn-row">
-          <button onclick="hashAction('MD5')">Hash with MD5</button>
-          <button onclick="hashAction('SHA256')">Hash with SHA-256</button>
-          <button onclick="hashAction('SHA512')">Hash with SHA-512</button>
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Hash Functions</h2>
+            <p class="panel-desc">One-way deterministic functions — impossible to reverse. The same input always produces the same hash, but even a single character change produces a completely different output (avalanche effect). No key. No decryption.</p>
+          </div>
+          <span class="strength-pill info">ONE-WAY</span>
         </div>
 
-        <div id="hash-output" class="output hidden"></div>
+        <div class="form-grid">
+          <div class="form-col">
+            <label class="field-label">Input Text</label>
+            <textarea id="hash-text" class="field-textarea" rows="4" placeholder="Enter text to hash..." oninput="onHashInput()"></textarea>
 
-        <div class="info-box" style="margin-top:20px">
-          <b>MD5</b> — 128-bit hash. Fast but broken for security purposes. Still used for checksums.<br><br>
-          <b>SHA-256</b> — 256-bit hash. Part of SHA-2 family. Used in TLS, Bitcoin, digital signatures.<br><br>
-          <b>SHA-512</b> — 512-bit hash. Stronger than SHA-256. Used where maximum hash strength is needed.
+            <div class="hash-algo-grid">
+              <button class="btn-hash" data-algo="MD5" onclick="hashAction('MD5')">
+                <span class="hash-algo-name">MD5</span>
+                <span class="hash-algo-bits">128-bit</span>
+              </button>
+              <button class="btn-hash" data-algo="SHA256" onclick="hashAction('SHA256')">
+                <span class="hash-algo-name">SHA-256</span>
+                <span class="hash-algo-bits">256-bit</span>
+              </button>
+              <button class="btn-hash" data-algo="SHA512" onclick="hashAction('SHA512')">
+                <span class="hash-algo-name">SHA-512</span>
+                <span class="hash-algo-bits">512-bit</span>
+              </button>
+            </div>
+
+            <div class="hash-info-cards">
+              <div class="hash-info-card">
+                <span class="hash-info-name">MD5</span>
+                Fast, broken for security. Used for file checksums only.
+              </div>
+              <div class="hash-info-card">
+                <span class="hash-info-name">SHA-256</span>
+                Secure. Used in TLS, Bitcoin, digital signatures, Git.
+              </div>
+              <div class="hash-info-card">
+                <span class="hash-info-name">SHA-512</span>
+                Maximum strength. Used in high-security applications.
+              </div>
+            </div>
+          </div>
+
+          <div class="form-col">
+            <label class="field-label">Output</label>
+            <div id="hash-output" class="result-box">
+              <div class="result-placeholder">
+                <span class="placeholder-icon">⟶</span>
+                <span>Select an algorithm to hash</span>
+              </div>
+            </div>
+            <div id="hash-viz" class="viz-box hidden">
+              <div class="viz-title">Hash Visualization</div>
+              <div id="hash-bits-viz" class="hash-bits-viz"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- attack tab -->
+    <!-- ==================== ATTACK SIMULATION PANEL ==================== -->
     <div id="tab-attack" class="tab-content">
-      <div class="card">
-        <h2>Attack Simulation</h2>
-        <p class="description">
-          Two different attack techniques are demonstrated: frequency analysis on Caesar (no knowledge
-          of the original required), and a dictionary attack on AES (showing why weak passwords are
-          dangerous even with strong encryption). Use a longer text for more accurate frequency analysis.
-        </p>
-
-        <label>Plaintext</label>
-        <input id="attack-text" type="text"
-          value="In the beginning there was darkness and then came the light of knowledge"
-          placeholder="Enter plaintext (longer = better frequency analysis)..." />
-
-        <div class="btn-row">
-          <button class="attack-btn" onclick="runAttack()">Run Attack Simulation</button>
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Attack Simulation</h2>
+            <p class="panel-desc">Live cryptanalysis demonstration. Frequency analysis breaks Caesar without knowing the original. A dictionary attack cracks AES protected by a weak password — proving that encryption strength alone is not enough.</p>
+          </div>
+          <span class="strength-pill danger">LIVE ATTACK</span>
         </div>
 
-        <div id="attack-loading" class="hidden loading-text">Running simulation...</div>
+        <div class="attack-input-row">
+          <div style="flex:1">
+            <label class="field-label">Target Plaintext <span class="field-hint">longer text improves frequency analysis accuracy</span></label>
+            <input id="attack-text" type="text" class="field-input"
+              value="In the beginning there was darkness and then came the light of knowledge"/>
+          </div>
+          <button class="btn-attack" onclick="runAttack()">
+            <span class="btn-icon">⚔</span> Run Simulation
+          </button>
+        </div>
+
+        <div id="attack-loading" class="hidden">
+          <div class="attack-loader">
+            <div class="loader-bar"></div>
+            <div class="loader-label" id="loader-label">Initializing attack...</div>
+          </div>
+        </div>
 
         <div id="attack-output" class="hidden">
 
-          <!-- caesar frequency analysis -->
-          <div class="attack-card weak">
-            <h3>Caesar Cipher &nbsp;<span class="badge weak">WEAK</span></h3>
-            <p class="attack-method">Method 1: Frequency Analysis (attacker has no knowledge of original)</p>
-            <div id="caesar-freq-result"></div>
+          <!-- Caesar section: frequency analysis + brute force results -->
+          <div class="attack-section">
+            <div class="attack-section-header weak-header">
+              <span class="attack-section-title">Caesar Cipher</span>
+              <span class="strength-pill weak" style="font-size:11px">CRACKED</span>
+            </div>
 
-            <p class="attack-method" style="margin-top:14px">Method 2: Brute-force (trying all 26 shifts)</p>
-            <div id="caesar-bf-result"></div>
+            <div class="attack-methods-grid">
+
+              <div class="attack-method-card">
+                <div class="method-label">Method A — Frequency Analysis</div>
+                <div class="method-desc">Attacker has zero knowledge of original text. Uses English letter frequency patterns to deduce the shift.</div>
+                <div id="freq-viz-container" class="freq-chart-container"></div>
+                <div id="caesar-freq-result" class="attack-result-table"></div>
+              </div>
+
+              <div class="attack-method-card">
+                <div class="method-label">Method B — Brute Force</div>
+                <div class="method-desc">Tries all 26 possible shift values exhaustively. Every single one in milliseconds.</div>
+                <div id="brute-force-viz" class="brute-force-viz"></div>
+                <div id="caesar-bf-result" class="attack-result-table"></div>
+              </div>
+
+            </div>
           </div>
 
-          <!-- aes dictionary attack -->
-          <div class="attack-card medium" style="margin-top:16px">
-            <h3>AES + Weak Password &nbsp;<span class="badge medium">CRACKED</span></h3>
-            <p class="attack-method">Method: Dictionary Attack — trying common passwords from a wordlist</p>
-            <div id="aes-dict-result"></div>
+          <!-- AES + weak password section: dictionary attack results -->
+          <div class="attack-section" style="margin-top:24px">
+            <div class="attack-section-header medium-header">
+              <span class="attack-section-title">AES + Weak Password</span>
+              <span class="strength-pill medium" style="font-size:11px">CRACKED via DICT</span>
+            </div>
+
+            <div class="attack-method-card" style="max-width:100%">
+              <div class="method-label">Method — Dictionary Attack</div>
+              <div class="method-desc">AES encryption was never broken. The weak password was found in a wordlist. Strong encryption + weak password = weak security.</div>
+              <div id="dict-viz" class="dict-attack-viz"></div>
+              <div id="aes-dict-result" class="attack-result-table"></div>
+            </div>
           </div>
 
-          <div class="verdict">
-            <p id="verdict-text"></p>
+          <!-- Summary verdict shown after all three attacks complete -->
+          <div class="verdict-block">
+            <div class="verdict-title">⚡ Key Takeaways</div>
+            <div id="verdict-text" class="verdict-content"></div>
           </div>
 
         </div>
-
       </div>
     </div>
 
@@ -279,5 +473,4 @@
 
   <script src="script.js"></script>
 </body>
-
 </html>
